@@ -1,9 +1,15 @@
 package com.example.orderservice;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.extern.java.Log;
+import java.time.Duration;
+import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -27,12 +33,10 @@ import org.springframework.statemachine.transition.Transition;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import java.util.Date;
-import java.util.Optional;
-import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.java.Log;
 
 @SpringBootApplication
 public class OrderServiceApplication {
@@ -149,7 +153,7 @@ class Runner implements ApplicationRunner {
 		log.info("after calling fulfill(): " + fulfilledStateMachine.getState().getId().name());
 		log.info("order: " + orderService.byId(order.getId()));
 
-
+		TimeUnit.SECONDS.sleep(11);
 	}
 
 	private final OrderService orderService;
@@ -205,7 +209,10 @@ class SimpleEnumStatemachineConfiguration extends StateMachineConfigurerAdapter<
 				.and()
 				.withExternal().source(OrderStates.SUBMITTED).target(OrderStates.CANCELLED).event(OrderEvents.CANCEL)
 				.and()
-				.withExternal().source(OrderStates.PAID).target(OrderStates.CANCELLED).event(OrderEvents.CANCEL);
+				.withExternal().source(OrderStates.PAID).target(OrderStates.CANCELLED).event(OrderEvents.CANCEL)
+				.and()
+				.withExternal().source(OrderStates.PAID).target(OrderStates.CANCELLED).timerOnce(Duration.ofSeconds(10).toMillis())
+				.action(context -> log.info("############# triggered ########################"));
 	}
 
 	@Override
@@ -229,7 +236,7 @@ class SimpleEnumStatemachineConfiguration extends StateMachineConfigurerAdapter<
 		StateMachineListenerAdapter<OrderStates, OrderEvents> adapter = new StateMachineListenerAdapter<OrderStates, OrderEvents>() {
 			@Override
 			public void stateChanged(State<OrderStates, OrderEvents> from, State<OrderStates, OrderEvents> to) {
-				log.info(String.format("stateChanged(from: %s, to: %s)", from + "", to + ""));
+				log.info(String.format("stateChanged(from: %s, to: %s)", from.getId() + "", to.getId() + ""));
 			}
 		};
 		config.withConfiguration()
